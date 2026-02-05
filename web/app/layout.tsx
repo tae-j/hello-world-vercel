@@ -16,6 +16,7 @@ export default function RootLayout({
       <body
         style={{
           margin: 0,
+          paddingTop: 90, 
           color: "white",
           minHeight: "100vh",
           background:
