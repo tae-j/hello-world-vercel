@@ -3,7 +3,6 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
-  const url = new URL(request.url);
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -12,10 +11,10 @@ export async function POST(request: Request) {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
+        setAll: (cookiesToSet: any[]) => {
+          cookiesToSet.forEach(({ name, value, options }: any) => {
+            cookieStore.set(name, value, options);
+          });
         },
       },
     }
@@ -23,5 +22,7 @@ export async function POST(request: Request) {
 
   await supabase.auth.signOut();
 
+  const url = new URL(request.url);
   return NextResponse.redirect(`${url.origin}/login`, { status: 303 });
 }
+

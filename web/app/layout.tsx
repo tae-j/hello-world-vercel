@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import NavBar from "./components/NavBar";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Hello World",
@@ -31,4 +32,3 @@ export default function RootLayout({
     </html>
   );
 }
-

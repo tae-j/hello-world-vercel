@@ -89,9 +89,24 @@ export default function NavBar() {
           >
             Captions
           </Link>
+
+          <Link
+            href="/login"
+            style={{
+            ...linkBase,
+            color: "white",
+            opacity: isActive("/login") ? 1 : 0.7,
+            background: isActive("/login") ? "rgba(255,255,255,0.10)" : "transparent",
+            border: isActive("/login")
+            ? "1px solid rgba(255,255,255,0.16)"
+            : "1px solid transparent",
+            boxShadow: isActive("/login") ? "0 0 18px rgba(255,255,255,0.10)" : "none",
+          }}
+      >
+      Login
+      </Link>
         </div>
       </div>
     </div>
   );
 }
-
