@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/* ---- CSS variables ---- */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* ---- base resets ---- */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+/* Make buttons/inputs inherit your typography */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* ---- Reusable pill button (navbar/login/protected vibe) ---- */
+/* (extra specificity so it always wins) */
+button.btn-ghost,
+a.btn-ghost,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  padding: 10px 14px;
+  border-radius: 999px;
+
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+
+  cursor: pointer;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  line-height: 1;
+
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease,
+    opacity 160ms ease;
+
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
+
+  appearance: none;
+  -webkit-appearance: none;
+  text-decoration: none;
+}
+
+button.btn-ghost:hover,
+a.btn-ghost:hover,
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+button.btn-ghost:active,
+a.btn-ghost:active,
+.btn-ghost:active {
+  transform: translateY(0px);
+  opacity: 0.95;
+}
+
+button.btn-ghost:focus-visible,
+a.btn-ghost:focus-visible,
+.btn-ghost:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.16),
+    0 0 0 6px rgba(255, 255, 255, 0.08),
+    0 0 18px rgba(255, 255, 255, 0.1);
+}
+
+/* optional small variant */
+.btn-ghost--sm {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
