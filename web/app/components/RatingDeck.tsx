@@ -1,6 +1,7 @@
+// app/components/RatingDeck.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type DeckItem = {
@@ -14,6 +15,10 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
   const [idx, setIdx] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // hover/press states (purely visual)
+  const [hovered, setHovered] = useState<"up" | "down" | null>(null);
+  const [pressed, setPressed] = useState<"up" | "down" | null>(null);
 
   const current = items[idx] ?? null;
   const total = items.length;
@@ -54,44 +59,66 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
       setError(e?.message ?? "Failed to save vote");
     } finally {
       setIsSubmitting(false);
+      setPressed(null);
     }
   }
 
   if (!current) return <div style={{ paddingTop: 24 }}>No items to rate.</div>;
 
-  // Keep these two numbers the same so header + card align
+  // Keep these the same so header + card align
   const MAX_WIDTH = 1400;
 
-  const voteBtnStyle = (disabled: boolean): React.CSSProperties => ({
-    width: 72,
-    height: 72,
-    borderRadius: 9999,
-    border: "2px solid rgba(255,255,255,0.28)",
-    background: "rgba(0,0,0,0.15)",
-    color: "white",
-    fontSize: 28,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.55 : 1,
-    userSelect: "none",
-  });
+  // ✅ Make the meme area smaller so caption + buttons fit without scrolling
+  // - clamp keeps it responsive across laptop vs big monitor
+  const IMAGE_HEIGHT = "clamp(300px, 52vh, 420px)";
+
+  const voteBtnStyle = (disabled: boolean, kind: "up" | "down"): CSSProperties => {
+    const isHover = hovered === kind;
+    const isPress = pressed === kind;
+
+    return {
+      width: 72,
+      height: 72,
+      borderRadius: 9999,
+      border: isHover ? "2px solid rgba(255,255,255,0.55)" : "2px solid rgba(255,255,255,0.28)",
+      background: isHover ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.15)",
+      color: "white",
+      fontSize: 28,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: disabled ? "not-allowed" : "pointer",
+      opacity: disabled ? 0.55 : 1,
+      userSelect: "none",
+      backdropFilter: "blur(6px)",
+
+      transform: disabled
+        ? "none"
+        : isPress
+        ? "scale(0.96)"
+        : isHover
+        ? "scale(1.04)"
+        : "scale(1)",
+      transition: "transform 120ms ease, border-color 120ms ease, background 120ms ease",
+    };
+  };
 
   return (
     <div style={{ width: "100%" }}>
-      {/* Header row: counter left, buttons right (aligned to card width) */}
+      {/* Header row: counter left, buttons right */}
       <div
         style={{
           maxWidth: MAX_WIDTH,
           width: "100%",
+          margin: "0 auto 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 18,
         }}
       >
-        <div style={{ opacity: 0.7 }}>{idx + 1}/{total}</div>
+        <div style={{ opacity: 0.7 }}>
+          {idx + 1}/{total}
+        </div>
 
         <div style={{ display: "flex", gap: 16 }}>
           <button
@@ -99,7 +126,14 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
             disabled={isSubmitting}
             onClick={() => submitVote(-1)}
             aria-label="Thumbs down"
-            style={voteBtnStyle(isSubmitting)}
+            onMouseEnter={() => setHovered("down")}
+            onMouseLeave={() => {
+              setHovered(null);
+              setPressed(null);
+            }}
+            onMouseDown={() => setPressed("down")}
+            onMouseUp={() => setPressed(null)}
+            style={voteBtnStyle(isSubmitting, "down")}
           >
             👎
           </button>
@@ -109,14 +143,25 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
             disabled={isSubmitting}
             onClick={() => submitVote(1)}
             aria-label="Thumbs up"
-            style={voteBtnStyle(isSubmitting)}
+            onMouseEnter={() => setHovered("up")}
+            onMouseLeave={() => {
+              setHovered(null);
+              setPressed(null);
+            }}
+            onMouseDown={() => setPressed("up")}
+            onMouseUp={() => setPressed(null)}
+            style={voteBtnStyle(isSubmitting, "up")}
           >
             👍
           </button>
         </div>
       </div>
 
-      {error && <div style={{ color: "tomato", marginBottom: 12 }}>{error}</div>}
+      {error && (
+        <div style={{ color: "tomato", marginBottom: 12, maxWidth: MAX_WIDTH, marginInline: "auto" }}>
+          {error}
+        </div>
+      )}
 
       {/* Meme card */}
       <div
@@ -126,9 +171,19 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
           overflow: "hidden",
           maxWidth: MAX_WIDTH,
           width: "100%",
+          margin: "0 auto",
+          background: "rgba(0,0,0,0.12)",
         }}
       >
-        <div style={{ height: 420, background: "rgba(255,255,255,0.04)" }}>
+        <div
+          style={{
+            height: IMAGE_HEIGHT, // ✅ smaller + responsive
+            background: "rgba(255,255,255,0.04)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           {current.imageUrl ? (
             <img
               src={current.imageUrl}
@@ -136,7 +191,7 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
+                objectFit: "contain",
                 display: "block",
               }}
             />
@@ -154,7 +209,15 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
           )}
         </div>
 
-        <div style={{ padding: 16, fontSize: 24, fontWeight: 700 }}>
+        <div
+          style={{
+            padding: 14,
+            fontSize: 22, // slightly smaller so it fits nicer
+            fontWeight: 700,
+            textAlign: "center",
+            lineHeight: 1.25,
+          }}
+        >
           {current.caption}
         </div>
       </div>
