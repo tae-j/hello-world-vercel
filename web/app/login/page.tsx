@@ -1,3 +1,4 @@
+// web/app/login/page.tsx
 "use client";
 
 import { supabase } from "@/lib/supabaseClient";
@@ -8,9 +9,7 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${origin}/auth/callback`,
-      },
+      options: { redirectTo: `${origin}/auth/callback` },
     });
 
     if (error) console.error("OAuth error:", error);
@@ -41,8 +40,7 @@ export default function LoginPage() {
           background: "rgba(15,15,15,0.45)",
           border: "1px solid rgba(255,255,255,0.14)",
           backdropFilter: "blur(14px)",
-          boxShadow:
-            "0 18px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05) inset",
+          boxShadow: "0 18px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05) inset",
         }}
       >
         <button
@@ -92,12 +90,13 @@ export default function LoginPage() {
         </button>
 
         <div style={{ marginTop: 14, opacity: 0.65, fontSize: 13 }}>
-          You’ll be redirected back automatically after signing in.
+          You will be redirected back automatically after signing in.
         </div>
       </div>
     </main>
   );
 }
+
 
 
 
