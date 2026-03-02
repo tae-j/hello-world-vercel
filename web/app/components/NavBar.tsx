@@ -1,10 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function NavBar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // onAuthStateChange fires immediately with current session — no extra getSession() needed
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   const isActive = (href: string) => pathname === href;
 
@@ -17,6 +35,15 @@ export default function NavBar() {
     transition: "all 160ms ease",
   };
 
+  const activeStyle = (href: string): React.CSSProperties => ({
+    ...linkBase,
+    color: "white",
+    opacity: isActive(href) ? 1 : 0.7,
+    background: isActive(href) ? "rgba(255,255,255,0.10)" : "transparent",
+    border: isActive(href) ? "1px solid rgba(255,255,255,0.16)" : "1px solid transparent",
+    boxShadow: isActive(href) ? "0 0 18px rgba(255,255,255,0.10)" : "none",
+  });
+
   return (
     <div
       style={{
@@ -25,7 +52,7 @@ export default function NavBar() {
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 50,
-        width: "min(860px, calc(100vw - 28px))",
+        width: "min(960px, calc(100vw - 28px))",
       }}
     >
       <div
@@ -43,6 +70,7 @@ export default function NavBar() {
             "0 10px 30px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.05) inset",
         }}
       >
+        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 6 }}>
           <div
             style={{
@@ -59,52 +87,41 @@ export default function NavBar() {
           </span>
         </div>
 
+        {/* Links */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Link
-            href="/"
-            style={{
-              ...linkBase,
-              color: "white",
-              opacity: isActive("/") ? 1 : 0.7,
-              background: isActive("/") ? "rgba(255,255,255,0.10)" : "transparent",
-              border: isActive("/") ? "1px solid rgba(255,255,255,0.16)" : "1px solid transparent",
-              boxShadow: isActive("/") ? "0 0 18px rgba(255,255,255,0.10)" : "none",
-            }}
-          >
-            Home
-          </Link>
+          <Link href="/" style={activeStyle("/")}>Home</Link>
+          <Link href="/captions" style={activeStyle("/captions")}>Captions</Link>
+          <Link href="/ratings" style={activeStyle("/ratings")}>Rate</Link>
+          <Link href="/upload" style={activeStyle("/upload")}>Upload</Link>
 
-          <Link
-            href="/captions"
-            style={{
-              ...linkBase,
-              color: "white",
-              opacity: isActive("/captions") ? 1 : 0.7,
-              background: isActive("/captions") ? "rgba(255,255,255,0.10)" : "transparent",
-              border: isActive("/captions")
-                ? "1px solid rgba(255,255,255,0.16)"
-                : "1px solid transparent",
-              boxShadow: isActive("/captions") ? "0 0 18px rgba(255,255,255,0.10)" : "none",
-            }}
-          >
-            Captions
-          </Link>
-
-          <Link
-            href="/login"
-            style={{
-            ...linkBase,
-            color: "white",
-            opacity: isActive("/login") ? 1 : 0.7,
-            background: isActive("/login") ? "rgba(255,255,255,0.10)" : "transparent",
-            border: isActive("/login")
-            ? "1px solid rgba(255,255,255,0.16)"
-            : "1px solid transparent",
-            boxShadow: isActive("/login") ? "0 0 18px rgba(255,255,255,0.10)" : "none",
-          }}
-      >
-      Login
-      </Link>
+          {/* Only render auth button once we know the state (avoids flicker) */}
+          {loggedIn === null ? null : loggedIn ? (
+            <button
+              onClick={handleSignOut}
+              style={{
+                ...linkBase,
+                color: "white",
+                opacity: 0.7,
+                background: "transparent",
+                border: "1px solid transparent",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.background = "rgba(255,255,255,0.10)";
+                e.currentTarget.style.border = "1px solid rgba(255,255,255,0.16)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "0.7";
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.border = "1px solid transparent";
+              }}
+            >
+              Sign Out
+            </button>
+          ) : (
+            <Link href="/login" style={activeStyle("/login")}>Login</Link>
+          )}
         </div>
       </div>
     </div>
