@@ -1,7 +1,7 @@
 // app/components/RatingDeck.tsx
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type DeckItem = {
@@ -11,14 +11,48 @@ type DeckItem = {
   storagePath: string | null;
 };
 
+function storageKey(userId: string) {
+  return `ratings_pos_${userId}`;
+}
+
 export default function RatingDeck({ items }: { items: DeckItem[] }) {
   const [idx, setIdx] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // hover/press states (purely visual)
   const [hovered, setHovered] = useState<"up" | "down" | null>(null);
   const [pressed, setPressed] = useState<"up" | "down" | null>(null);
+
+  // Track auth state and keep userId in sync.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+      setUserId(user?.id ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session?.user);
+      setUserId(session?.user?.id ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Restore deck position from localStorage once both userId and items are ready.
+  // Keyed on the caption ID so it survives deck size changes between sessions.
+  useEffect(() => {
+    if (!userId || items.length === 0) return;
+    const saved = localStorage.getItem(storageKey(userId));
+    if (!saved) return;
+    const savedIdx = items.findIndex((item) => item.id === saved);
+    if (savedIdx >= 0) {
+      setIdx(savedIdx);
+    } else {
+      // Caption was removed from the deck; drop the stale entry and start fresh.
+      localStorage.removeItem(storageKey(userId));
+    }
+  }, [userId, items]);
 
   const current = items[idx] ?? null;
   const total = items.length;
@@ -54,7 +88,13 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
         throw new Error(j?.error ?? "Failed to save vote");
       }
 
-      setIdx((prev) => Math.min(prev + 1, total - 1));
+      // Advance and persist only after the server confirms the vote saved.
+      const nextIdx = Math.min(idx + 1, total - 1);
+      setIdx(nextIdx);
+      const nextItem = items[nextIdx];
+      if (nextItem) {
+        localStorage.setItem(storageKey(user.id), nextItem.id);
+      }
     } catch (e: any) {
       setError(e?.message ?? "Failed to save vote");
     } finally {
@@ -65,11 +105,12 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
 
   if (!current) return <div style={{ paddingTop: 24 }}>No items to rate.</div>;
 
+  const votingDisabled = isSubmitting || isLoggedIn === false;
+
   // Keep these the same so header + card align
   const MAX_WIDTH = 1400;
 
-  // ✅ Make the meme area smaller so caption + buttons fit without scrolling
-  // - clamp keeps it responsive across laptop vs big monitor
+  // clamp keeps it responsive across laptop vs big monitor
   const IMAGE_HEIGHT = "clamp(300px, 52vh, 420px)";
 
   const voteBtnStyle = (disabled: boolean, kind: "up" | "down"): CSSProperties => {
@@ -123,7 +164,7 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
         <div style={{ display: "flex", gap: 16 }}>
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={votingDisabled}
             onClick={() => submitVote(-1)}
             aria-label="Thumbs down"
             onMouseEnter={() => setHovered("down")}
@@ -133,14 +174,14 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
             }}
             onMouseDown={() => setPressed("down")}
             onMouseUp={() => setPressed(null)}
-            style={voteBtnStyle(isSubmitting, "down")}
+            style={voteBtnStyle(votingDisabled, "down")}
           >
             👎
           </button>
 
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={votingDisabled}
             onClick={() => submitVote(1)}
             aria-label="Thumbs up"
             onMouseEnter={() => setHovered("up")}
@@ -150,12 +191,18 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
             }}
             onMouseDown={() => setPressed("up")}
             onMouseUp={() => setPressed(null)}
-            style={voteBtnStyle(isSubmitting, "up")}
+            style={voteBtnStyle(votingDisabled, "up")}
           >
             👍
           </button>
         </div>
       </div>
+
+      {isLoggedIn === false && (
+        <div style={{ color: "tomato", marginBottom: 12, maxWidth: MAX_WIDTH, marginInline: "auto" }}>
+          You must be logged in to vote.
+        </div>
+      )}
 
       {error && (
         <div style={{ color: "tomato", marginBottom: 12, maxWidth: MAX_WIDTH, marginInline: "auto" }}>
@@ -177,7 +224,7 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
       >
         <div
           style={{
-            height: IMAGE_HEIGHT, // ✅ smaller + responsive
+            height: IMAGE_HEIGHT,
             background: "rgba(255,255,255,0.04)",
             display: "flex",
             alignItems: "center",
@@ -212,7 +259,7 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
         <div
           style={{
             padding: 14,
-            fontSize: 22, // slightly smaller so it fits nicer
+            fontSize: 22,
             fontWeight: 700,
             textAlign: "center",
             lineHeight: 1.25,
@@ -224,7 +271,3 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
     </div>
   );
 }
-
-
-
-
