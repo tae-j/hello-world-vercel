@@ -15,6 +15,10 @@ function storageKey(userId: string) {
   return `ratings_pos_${userId}`;
 }
 
+function newCaptionsKey(userId: string) {
+  return `latest_uploaded_caption_ids_${userId}`;
+}
+
 export default function RatingDeck({ items }: { items: DeckItem[] }) {
   const [idx, setIdx] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +29,9 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
   // hover/press states (purely visual)
   const [hovered, setHovered] = useState<"up" | "down" | null>(null);
   const [pressed, setPressed] = useState<"up" | "down" | null>(null);
+  // Tracks the deck index of the last "newly uploaded" caption so we know when
+  // to clear the prioritization signal after the user votes past it.
+  const [lastNewIdx, setLastNewIdx] = useState<number | null>(null);
 
   // Track auth state and keep userId in sync.
   useEffect(() => {
@@ -39,10 +46,33 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Restore deck position from localStorage once both userId and items are ready.
-  // Keyed on the caption ID so it survives deck size changes between sessions.
+  // Restore deck position once both userId and items are ready.
   useEffect(() => {
     if (!userId || items.length === 0) return;
+
+    // Newly uploaded captions take priority over the saved position. If the user
+    // just generated captions, start them there so they can rate their own upload.
+    const newIdsRaw = localStorage.getItem(newCaptionsKey(userId));
+    if (newIdsRaw) {
+      try {
+        const newIds: string[] = JSON.parse(newIdsRaw);
+        const newIndices = newIds
+          .map((id) => items.findIndex((item) => item.id === id))
+          .filter((i) => i >= 0)
+          .sort((a, b) => a - b);
+
+        if (newIndices.length > 0) {
+          setIdx(newIndices[0]);
+          setLastNewIdx(newIndices[newIndices.length - 1]);
+          return; // skip normal position restoration
+        }
+      } catch {}
+      // Signal is stale or malformed — discard and fall through to normal restore.
+      localStorage.removeItem(newCaptionsKey(userId));
+    }
+
+    // Normal saved-position restoration, keyed on caption ID so it survives
+    // deck size changes between sessions.
     const saved = localStorage.getItem(storageKey(userId));
     if (!saved) return;
     const savedIdx = items.findIndex((item) => item.id === saved);
@@ -94,6 +124,13 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
       const nextItem = items[nextIdx];
       if (nextItem) {
         localStorage.setItem(storageKey(user.id), nextItem.id);
+      }
+
+      // Once the user has voted on the last newly uploaded caption, clear the
+      // prioritization signal so normal progress persistence resumes.
+      if (lastNewIdx !== null && idx >= lastNewIdx) {
+        localStorage.removeItem(newCaptionsKey(user.id));
+        setLastNewIdx(null);
       }
     } catch (e: any) {
       setError(e?.message ?? "Failed to save vote");

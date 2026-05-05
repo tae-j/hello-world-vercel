@@ -161,8 +161,10 @@ export default function UploadPage() {
       }
 
       // Insert each generated caption linked to the image.
+      // .select("id") returns the Supabase-generated UUIDs so we can signal
+      // the Rate page to start at these captions instead of the old saved position.
       if (generated.length > 0 && userId) {
-        const { error: captionSaveErr } = await supabase
+        const { data: savedCaptions, error: captionSaveErr } = await supabase
           .from("captions")
           .insert(
             generated.map((content) => ({
@@ -171,9 +173,20 @@ export default function UploadPage() {
               created_by_user_id: userId,
               modified_by_user_id: userId,
             }))
-          );
+          )
+          .select("id");
+
         if (captionSaveErr) {
           console.warn("[upload] captions save error:", captionSaveErr.message);
+        }
+
+        // Write the new caption IDs to localStorage so the Rate page can
+        // prioritize them over the user's previously saved deck position.
+        if (savedCaptions && savedCaptions.length > 0) {
+          localStorage.setItem(
+            `latest_uploaded_caption_ids_${userId}`,
+            JSON.stringify(savedCaptions.map((c: { id: string }) => c.id))
+          );
         }
       }
 
