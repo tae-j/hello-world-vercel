@@ -50,6 +50,7 @@ export default function RatePage() {
         .from("captions")
         .select("id, content, image_id, images ( url )")
         .order("created_datetime_utc", { ascending: false })
+        .order("id", { ascending: false })
         .limit(100);
 
       if (cancelled) return;

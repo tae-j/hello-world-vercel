@@ -36,6 +36,9 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
   // preventing a second effect firing (from a parent re-render or auth event)
   // from overwriting the already-resolved position with stale saved progress.
   const restoredRef = useRef(false);
+  // Suppresses the counter until the first restoration decision is made so the
+  // user never sees the default idx=0 ("1/100") flash before the correct position.
+  const [isRestored, setIsRestored] = useState(false);
 
   // Track auth state and keep userId in sync.
   useEffect(() => {
@@ -73,6 +76,7 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
         if (newIndices.length > 0) {
           setIdx(newIndices[0]);
           setLastNewIdx(newIndices[newIndices.length - 1]);
+          setIsRestored(true);
           return; // skip normal position restoration
         }
       } catch {}
@@ -83,7 +87,11 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
     // Normal saved-position restoration, keyed on caption ID so it survives
     // deck size changes between sessions.
     const saved = localStorage.getItem(storageKey(userId));
-    if (!saved) return;
+    if (!saved) {
+      // No saved position — start at 0 (first caption).
+      setIsRestored(true);
+      return;
+    }
     const savedIdx = items.findIndex((item) => item.id === saved);
     if (savedIdx >= 0) {
       setIdx(savedIdx);
@@ -91,6 +99,7 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
       // Caption was removed from the deck; drop the stale entry and start fresh.
       localStorage.removeItem(storageKey(userId));
     }
+    setIsRestored(true);
   }, [userId, items]);
 
   const current = items[idx] ?? null;
@@ -204,7 +213,7 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
         }}
       >
         <div style={{ opacity: 0.7 }}>
-          {idx + 1}/{total}
+          {isRestored ? `${idx + 1}/${total}` : `…/${total}`}
         </div>
 
         <div style={{ display: "flex", gap: 16 }}>
