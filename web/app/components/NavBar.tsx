@@ -83,7 +83,7 @@ export default function NavBar() {
             }}
           />
           <span style={{ fontSize: 13, letterSpacing: 3, opacity: 0.85 }}>
-            HELLO WORLD
+            HELLO YOU
           </span>
         </div>
 

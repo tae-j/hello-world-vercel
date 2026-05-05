@@ -39,7 +39,7 @@ export default async function ProtectedPage() {
 
       <div
         style={{
-          width: "min(720px, 100%)",
+          width: "min(640px, 100%)",
           marginTop: 18,
           padding: "26px 22px",
           borderRadius: 22,

@@ -33,7 +33,7 @@ export default function LoginPage() {
 
       <div
         style={{
-          width: "min(520px, 100%)",
+          width: "min(640px, 100%)",
           marginTop: 18,
           padding: "22px 22px",
           borderRadius: 18,
