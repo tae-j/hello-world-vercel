@@ -1,7 +1,7 @@
 // app/components/RatingDeck.tsx
 "use client";
 
-import { useState, useEffect, type CSSProperties } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 type DeckItem = {
@@ -32,6 +32,10 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
   // Tracks the deck index of the last "newly uploaded" caption so we know when
   // to clear the prioritization signal after the user votes past it.
   const [lastNewIdx, setLastNewIdx] = useState<number | null>(null);
+  // Guards the restore effect so it only applies its logic once per mount,
+  // preventing a second effect firing (from a parent re-render or auth event)
+  // from overwriting the already-resolved position with stale saved progress.
+  const restoredRef = useRef(false);
 
   // Track auth state and keep userId in sync.
   useEffect(() => {
@@ -49,6 +53,11 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
   // Restore deck position once both userId and items are ready.
   useEffect(() => {
     if (!userId || items.length === 0) return;
+    // Only restore once per mount. A second firing (e.g. from a parent re-render
+    // passing a new items reference, or an auth event updating userId to the same
+    // value) must not overwrite the position we already resolved.
+    if (restoredRef.current) return;
+    restoredRef.current = true;
 
     // Newly uploaded captions take priority over the saved position. If the user
     // just generated captions, start them there so they can rate their own upload.
