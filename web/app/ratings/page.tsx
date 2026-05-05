@@ -26,21 +26,25 @@ export default function RatePage() {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
+  // Fetch fresh captions on every mount. Using getUser() directly ensures the
+  // fetch always runs regardless of whether onAuthStateChange fires immediately
+  // (avoids stale router-cache state from Next.js client-side navigation).
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (isLoggedIn !== true) return;
-
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setError(null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+
+      setIsLoggedIn(!!user);
+
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("captions")
@@ -76,10 +80,17 @@ export default function RatePage() {
     }
 
     load();
+
+    // Update isLoggedIn UI state for sign-in/sign-out while on the page
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!cancelled) setIsLoggedIn(!!session?.user);
+    });
+
     return () => {
       cancelled = true;
+      subscription.unsubscribe();
     };
-  }, [isLoggedIn]);
+  }, []); // empty deps — always fetches fresh data on every mount
 
   return (
     <main style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>

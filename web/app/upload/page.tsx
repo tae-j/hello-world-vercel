@@ -129,6 +129,54 @@ export default function UploadPage() {
         ? captionData.map((c: any) => c?.content ?? c?.caption ?? String(c)).filter(Boolean)
         : [];
 
+      // Save image and captions directly to Supabase so they appear on the Rate page.
+      // The external pipeline API does not write to this app's Supabase captions table.
+      const userId = session?.user?.id ?? null;
+
+      // Insert the image record and get a stable Supabase image_id for the FK.
+      let supabaseImageId: string | null = null;
+      const { data: imgRow, error: imgInsertErr } = await supabase
+        .from("images")
+        .insert({
+          url: cdnUrl,
+          created_by_user_id: userId,
+          modified_by_user_id: userId,
+        })
+        .select("id")
+        .single();
+
+      if (imgInsertErr) {
+        // Image URL may already exist — try to find the existing row.
+        const { data: existing } = await supabase
+          .from("images")
+          .select("id")
+          .eq("url", cdnUrl)
+          .maybeSingle();
+        supabaseImageId = existing?.id ?? null;
+        if (imgInsertErr.code !== "23505") {
+          console.warn("[upload] image insert error:", imgInsertErr.message);
+        }
+      } else {
+        supabaseImageId = imgRow?.id ?? null;
+      }
+
+      // Insert each generated caption linked to the image.
+      if (generated.length > 0 && userId) {
+        const { error: captionSaveErr } = await supabase
+          .from("captions")
+          .insert(
+            generated.map((content) => ({
+              content,
+              image_id: supabaseImageId,
+              created_by_user_id: userId,
+              modified_by_user_id: userId,
+            }))
+          );
+        if (captionSaveErr) {
+          console.warn("[upload] captions save error:", captionSaveErr.message);
+        }
+      }
+
       setCaptions(generated);
       setStep("done");
 
