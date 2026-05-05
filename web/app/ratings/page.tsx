@@ -24,8 +24,18 @@ export default function RatePage() {
   const [items, setItems] = useState<DeckItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn !== true) return;
+
     let cancelled = false;
 
     async function load() {
@@ -57,22 +67,19 @@ export default function RatePage() {
           id: row.id,
           caption: row.content,
           imageUrl: img?.url ?? null,
-          storagePath: null, // your images table doesn't have storage_path
+          storagePath: null,
         };
       });
 
       setItems(mapped);
       setLoading(false);
-
-      // Optional sanity check:
-      // console.log("first mapped item:", mapped[0]);
     }
 
     load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isLoggedIn]);
 
   return (
     <main style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>
@@ -81,13 +88,61 @@ export default function RatePage() {
           fontSize: 56,
           lineHeight: 1.05,
           letterSpacing: -1,
-          marginBottom: 12,
+          marginBottom: 8,
         }}
       >
-        Rate Memes
+        Rate Captions
       </div>
 
-      {loading ? (
+      <p style={{ margin: "0 0 24px", opacity: 0.7, fontSize: 16, lineHeight: 1.5 }}>
+        Each card shows an image with an AI-generated caption below it.
+        Vote on how funny or fitting the <strong style={{ color: "white", opacity: 1 }}>caption</strong> is — not the image itself.
+      </p>
+
+      {isLoggedIn === false ? (
+        <div
+          style={{
+            width: "min(620px, 100%)",
+            margin: "32px auto 0",
+            padding: "52px 40px",
+            borderRadius: 24,
+            background: "rgba(10,10,20,0.78)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 28px 70px rgba(0,0,0,0.72), inset 0 0 0 1px rgba(255,255,255,0.04)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.3, marginBottom: 12 }}>
+            You are not signed in.
+          </div>
+          <div style={{ opacity: 0.65, fontSize: 15, lineHeight: 1.6, marginBottom: 6 }}>
+            Please sign in to continue.
+          </div>
+          <div style={{ opacity: 0.4, fontSize: 13, lineHeight: 1.5, marginBottom: 32 }}>
+            Click sign in to go to the login page.
+          </div>
+          <a
+            href="/login"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "13px 34px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.10)",
+              border: "1px solid rgba(255,255,255,0.28)",
+              color: "white",
+              textDecoration: "none",
+              fontWeight: 600,
+              fontSize: 15,
+              letterSpacing: 0.3,
+            }}
+          >
+            Sign in
+          </a>
+        </div>
+      ) : isLoggedIn === null || loading ? (
         <div style={{ opacity: 0.8 }}>Loading...</div>
       ) : error ? (
         <div style={{ color: "tomato" }}>{error}</div>

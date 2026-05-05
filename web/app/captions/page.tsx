@@ -40,8 +40,20 @@ export default function CaptionsPage() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 28, marginBottom: 16 }}>Captions</h1>
+    <main style={{ padding: 24, maxWidth: 980, margin: "0 auto" }}>
+      <div
+        style={{
+          fontSize: 56,
+          lineHeight: 1.05,
+          letterSpacing: -1,
+          marginBottom: 8,
+        }}
+      >
+        Captions
+      </div>
+      <p style={{ margin: "0 0 24px", opacity: 0.65, fontSize: 16, lineHeight: 1.55 }}>
+        Browse all AI-generated captions. Click any card to view it in detail.
+      </p>
 
       {error && (
         <p style={{ color: "tomato", marginBottom: 16 }}>Error: {error}</p>
@@ -64,19 +76,21 @@ export default function CaptionsPage() {
               <div
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.28)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0px)";
                   e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
                 }}
                 style={{
                   border: "1px solid rgba(255,255,255,0.12)",
                   background: "rgba(255,255,255,0.04)",
-                  borderRadius: 14,
-                  padding: 16,
+                  borderRadius: 16,
+                  padding: 20,
                   backdropFilter: "blur(6px)",
-                  transition: "transform 120ms ease, background 120ms ease",
+                  transition: "transform 120ms ease, background 120ms ease, border-color 120ms ease",
                   display: "flex",
                   gap: 14,
                   alignItems: "center",
@@ -110,7 +124,7 @@ export default function CaptionsPage() {
                 )}
 
                 {/* caption text */}
-                <div style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ opacity: 0.7, fontSize: 12, marginBottom: 8 }}>
                     {new Date(row.created_datetime_utc).toLocaleString()}
                   </div>
@@ -127,6 +141,18 @@ export default function CaptionsPage() {
                   >
                     {row.content}
                   </div>
+                </div>
+
+                {/* persistent chevron signals the card is clickable */}
+                <div
+                  style={{
+                    flex: "0 0 auto",
+                    fontSize: 20,
+                    opacity: 0.35,
+                    paddingLeft: 4,
+                  }}
+                >
+                  ›
                 </div>
               </div>
             </button>
@@ -153,33 +179,35 @@ export default function CaptionsPage() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: "min(560px, 92vw)",
-              borderRadius: 20,
-              border: "1px solid rgba(255,255,255,0.14)",
-              background: "rgba(18,18,18,0.92)",
-              boxShadow: "0 22px 70px rgba(0,0,0,0.65)",
+              width: "min(640px, 94vw)",
+              borderRadius: 22,
+              border: "1px solid rgba(255,255,255,0.16)",
+              background: "rgba(12,12,20,0.96)",
+              boxShadow: "0 28px 80px rgba(0,0,0,0.72)",
               overflow: "hidden",
               position: "relative",
             }}
           >
-            {/* X button */}
+            {/* X button — opaque dark base so it reads on any image */}
             <button
               onClick={closeModal}
               aria-label="Close"
               style={{
                 position: "absolute",
-                top: 10,
-                right: 10,
-                width: 36,
-                height: 36,
+                top: 12,
+                right: 12,
+                width: 46,
+                height: 46,
                 borderRadius: 999,
-                border: "1px solid rgba(255,255,255,0.18)",
-                background: "rgba(255,255,255,0.10)",
+                border: "1.5px solid rgba(150,130,255,0.65)",
+                background: "rgba(8,6,22,0.90)",
                 color: "white",
-                fontSize: 18,
+                fontSize: 22,
                 cursor: "pointer",
                 display: "grid",
                 placeItems: "center",
+                boxShadow: "0 0 14px rgba(120,100,255,0.30)",
+                zIndex: 1,
               }}
             >
               ×
@@ -209,12 +237,12 @@ export default function CaptionsPage() {
             )}
 
             {/* caption content */}
-            <div style={{ padding: 16 }}>
-              <div style={{ opacity: 0.7, fontSize: 12, marginBottom: 10 }}>
+            <div style={{ padding: "20px 22px 26px" }}>
+              <div style={{ opacity: 0.55, fontSize: 12, letterSpacing: 0.3, marginBottom: 12 }}>
                 {new Date(active.created_datetime_utc).toLocaleString()}
               </div>
 
-              <div style={{ fontSize: 20, lineHeight: 1.35 }}>
+              <div style={{ fontSize: 21, lineHeight: 1.45, fontWeight: 500 }}>
                 {active.content}
               </div>
             </div>

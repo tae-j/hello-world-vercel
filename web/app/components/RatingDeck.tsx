@@ -199,8 +199,34 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
       </div>
 
       {isLoggedIn === false && (
-        <div style={{ color: "tomato", marginBottom: 12, maxWidth: MAX_WIDTH, marginInline: "auto" }}>
-          You must be logged in to vote.
+        <div
+          style={{
+            marginBottom: 14,
+            maxWidth: MAX_WIDTH,
+            marginInline: "auto",
+            padding: "12px 16px",
+            borderRadius: 10,
+            border: "1px solid rgba(255,120,80,0.35)",
+            background: "rgba(255,80,40,0.10)",
+            color: "rgba(255,160,130,1)",
+            fontSize: 14,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span>You must be logged in to vote.</span>
+          <a
+            href="/login"
+            style={{
+              color: "white",
+              textDecoration: "underline",
+              opacity: 0.85,
+              flexShrink: 0,
+            }}
+          >
+            Sign in →
+          </a>
         </div>
       )}
 
@@ -256,16 +282,30 @@ export default function RatingDeck({ items }: { items: DeckItem[] }) {
           )}
         </div>
 
-        <div
-          style={{
-            padding: 14,
-            fontSize: 22,
-            fontWeight: 700,
-            textAlign: "center",
-            lineHeight: 1.25,
-          }}
-        >
-          {current.caption}
+        <div style={{ padding: "10px 14px 14px" }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 2,
+              opacity: 0.45,
+              textTransform: "uppercase",
+              marginBottom: 6,
+              textAlign: "center",
+            }}
+          >
+            Caption
+          </div>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              textAlign: "center",
+              lineHeight: 1.25,
+            }}
+          >
+            {current.caption}
+          </div>
         </div>
       </div>
     </div>

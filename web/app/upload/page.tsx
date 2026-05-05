@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -12,10 +12,10 @@ const STEPS: Step[] = ["presign", "upload", "register", "captions"];
 
 const STEP_LABELS: Record<Step, string> = {
   idle: "",
-  presign: "Getting upload URL...",
+  presign: "Preparing upload...",
   upload: "Uploading image...",
-  register: "Registering image...",
-  captions: "Generating captions...",
+  register: "Saving image...",
+  captions: "Generating captions with AI — this takes a few seconds...",
   done: "Done!",
   error: "",
 };
@@ -29,6 +29,14 @@ export default function UploadPage() {
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
   const [captions, setCaptions] = useState<string[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
@@ -148,12 +156,59 @@ export default function UploadPage() {
         Upload
       </div>
 
-      <p style={{ marginTop: 0, marginBottom: 24, opacity: 0.7, fontSize: 16 }}>
-        Upload an image to generate captions.
+      <p style={{ marginTop: 0, marginBottom: 24, opacity: 0.7, fontSize: 16, lineHeight: 1.6 }}>
+        Upload an image and AI will write funny captions for it.
+        The captions are saved and shown to other users to rate.
+        You must be logged in to upload.
       </p>
 
+      {isLoggedIn === false && (
+        <div
+          style={{
+            width: "min(620px, 100%)",
+            margin: "32px auto 0",
+            padding: "52px 40px",
+            borderRadius: 24,
+            background: "rgba(10,10,20,0.78)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 28px 70px rgba(0,0,0,0.72), inset 0 0 0 1px rgba(255,255,255,0.04)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.3, marginBottom: 12 }}>
+            You are not signed in.
+          </div>
+          <div style={{ opacity: 0.65, fontSize: 15, lineHeight: 1.6, marginBottom: 6 }}>
+            Please sign in to continue.
+          </div>
+          <div style={{ opacity: 0.4, fontSize: 13, lineHeight: 1.5, marginBottom: 32 }}>
+            Click sign in to go to the login page.
+          </div>
+          <a
+            href="/login"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "13px 34px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.10)",
+              border: "1px solid rgba(255,255,255,0.28)",
+              color: "white",
+              textDecoration: "none",
+              fontWeight: 600,
+              fontSize: 15,
+              letterSpacing: 0.3,
+            }}
+          >
+            Sign in
+          </a>
+        </div>
+      )}
+
       {/* Main card — matches protected/page.tsx card style */}
-      <div
+      {isLoggedIn === true && <div
         style={{
           width: "min(640px, 100%)",
           padding: "26px 22px",
@@ -258,22 +313,27 @@ export default function UploadPage() {
 
         {/* Progress bar */}
         {isLoading && (
-          <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-            {STEPS.map((s, i) => (
-              <div
-                key={s}
-                style={{
-                  flex: 1,
-                  height: 3,
-                  borderRadius: 999,
-                  background:
-                    currentStepIndex >= i
-                      ? "rgba(255,255,255,0.75)"
-                      : "rgba(255,255,255,0.12)",
-                  transition: "background 300ms ease",
-                }}
-              />
-            ))}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 6 }}>
+              Step {currentStepIndex + 1} of {STEPS.length}
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {STEPS.map((s, i) => (
+                <div
+                  key={s}
+                  style={{
+                    flex: 1,
+                    height: 3,
+                    borderRadius: 999,
+                    background:
+                      currentStepIndex >= i
+                        ? "rgba(255,255,255,0.75)"
+                        : "rgba(255,255,255,0.12)",
+                    transition: "background 300ms ease",
+                  }}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -293,10 +353,10 @@ export default function UploadPage() {
             {error}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Generated captions — same card style as the rest of the site */}
-      {step === "done" && captions.length > 0 && (
+      {isLoggedIn === true && step === "done" && captions.length > 0 && (
         <div style={{ marginTop: 28, width: "min(640px, 100%)" }}>
           <div
             style={{
@@ -345,7 +405,7 @@ export default function UploadPage() {
         </div>
       )}
 
-      {step === "done" && captions.length === 0 && (
+      {isLoggedIn === true && step === "done" && captions.length === 0 && (
         <div style={{ marginTop: 20, opacity: 0.7, fontSize: 15 }}>
           Upload complete! Captions are being processed.{" "}
           <span
